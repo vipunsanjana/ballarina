@@ -1,0 +1,21 @@
+##GET
+GET http://localhost:9090/social-media/users
+
+
+##GET
+GET http://localhost:9090/social-media/user/1
+
+
+##POST
+POST http://localhost:9090/social-media/user
+Content-Type: application/json
+
+{
+    "name": "roshith",
+    "birthday": {
+        "year": 2006,
+        "month": 8,
+        "day": 29
+    },
+    "mobileNumber": "0771234567"
+}
