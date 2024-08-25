@@ -1,12 +1,18 @@
 import ballerina/http;
 import ballerina/time;
 import ballerinax/mysql;
+import ballerinax/mysql.driver as _;
+import ballerina/sql;
+
 
 type User record {|
 
     readonly int id;
     string name;
+    @sql:Column {name:"birth_day"}
     time:Date birthday;
+
+     @sql:Column {name:"mobile_number"}
     string mobileNumber;
     
 |};
@@ -34,20 +40,30 @@ type NewUser record {|
 |};
 
 
-mysql:Client dbClient = check new mysql:Client("localhost", "ballerina", "root", "", 3306);
 
+// mysql:Client dbClient = check new("localhost", "social_media_database", "social_media_user", "dummypassword", 3306);
+
+
+
+mysql:Client dbClient = check new ("localhost", "social_media_user", "dummypassword", 
+                              "social_media_database", 3306);
 
 
 
 service /social\-media on new http:Listener(9090) {
+
+    
+
+
     resource function get users() returns User[] | error {
 
-        return users.toArray();
+        stream<User, sql:Error?> result = dbClient->query(`SELECT * FROM users`);
+        return from var user  in result select user;
     }
 
     resource function get user/[int id]() returns User | UserNotFound | error {
-        User? user = users[id];
-        if user is () {
+        User|sql:Error user = dbClient->queryRow(`SELECT * FROM users WHERE id = ${id}`);
+        if user is sql:NoRowsError {
             UserNotFound notFound = {
                 body: {message: string `id: ${id}`, details:string `user/${id}` , timestamp: time:utcNow()}
             };
@@ -58,7 +74,7 @@ service /social\-media on new http:Listener(9090) {
     }
 
     resource function post user(NewUser newUser) returns http:Created | error {
-        users.add({id: users.length() + 1, ...newUser});
+        _= check dbClient->execute(`INSERT INTO users (name, birth_day, mobile_number) VALUES (${newUser.name}, ${newUser.birthday}, ${newUser.mobileNumber})`);
         return http:CREATED;
     }
 }
